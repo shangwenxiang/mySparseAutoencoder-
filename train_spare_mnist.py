@@ -141,8 +141,28 @@ def load_MNIST_labels(filename):	#mnist标签
         f.close()
         return labels
 
+def train_net():
+    theta = initialize_parameters(hidden_size, visible_size)    #随机初始化参数
+    J = lambda theta : sparse_autoencoder_cost(theta, visible_size, hidden_size, weight_decay_param, sparsity_param, beta, patches)
 
+    # 迭代次数设置为500
+    options = {'maxiter': 5, 'disp': True, 'gtol': 1e-5, 'ftol': 2e-9}
+    results = scipy.optimize.minimize(J, theta, method='L-BFGS-B', jac=True, options=options)
+    opt_theta = results['x']
+    #可视化权重单元
+    W1 = opt_theta[0:hidden_size*visible_size].reshape((hidden_size, visible_size))
+    np.save("train_spare_mnist.npy",W1);
+    print("Show the results of optimization as following.\n")
+    print(results)
+    
+def show_feature() :
+    W1=np.load("train_spare_image.npy")
+    image = display_network(W1.T)
+    plt.figure()
+    plt.imsave('sparse_autoencoder_minist_weights.png', image, cmap=plt.cm.gray)
+    plt.imshow(image, cmap=plt.cm.gray)
 
+    plt.show()
 
 # 加载mnist数据集中的图片
 images = load_MNIST_images('data/mnist/train-images-idx3-ubyte')
@@ -164,27 +184,11 @@ weight_decay_param = 3e-3       # 权重衰减系数　　学习率
 beta = 3                        # 权重惩罚因子
 sparsity_param = 0.1            # 隐藏单元平均激活数量
 
-theta = initialize_parameters(hidden_size, visible_size)    #随机初始化参数
 
-J = lambda theta : sparse_autoencoder_cost(theta, visible_size, hidden_size, weight_decay_param, sparsity_param, beta, patches)
-
-# 迭代次数设置为500
-options = {'maxiter': 500, 'disp': True, 'gtol': 1e-5, 'ftol': 2e-9}
-results = scipy.optimize.minimize(J, theta, method='L-BFGS-B', jac=True, options=options)
-opt_theta = results['x']
-
-print("Show the results of optimization as following.\n")
-print(results)
+#train_net()#只需要训练一次
+show_feature()
 
 
-#可视化权重单元
-W1 = opt_theta[0:hidden_size*visible_size].reshape((hidden_size, visible_size))
 
-image = display_network(W1.T)
-plt.figure()
-plt.imsave('sparse_autoencoder_minist_weights.png', image, cmap=plt.cm.gray)
-plt.imshow(image, cmap=plt.cm.gray)
-
-plt.show()
 
 
