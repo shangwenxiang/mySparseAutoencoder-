@@ -215,14 +215,14 @@ def normalize_data(patches):
     return patches
 
 """
-第一步：加载图片数据，显示200张图片    
+第一步：加载图片数据，显示20张图片    
 """
-patches = sample_images('data/IMAGES.mat') # Read sample form the Matlab file
+patches = sample_images('data/IMAGES.mat') # 数据加载
 
-n_patches = patches.shape[1] # Number of patches
+n_patches = patches.shape[1] #获取数据批次
 
 # 随机200张图显示并保存
-image = display_network(patches[: , [np.random.randint(n_patches) for i in range(200)]])
+image = display_network(patches[: , [np.random.randint(n_patches) for i in range(20)]])
 
 plt.figure()
 plt.imshow(image, cmap=plt.cm.gray)
