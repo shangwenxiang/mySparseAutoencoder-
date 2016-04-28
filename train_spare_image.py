@@ -15,8 +15,7 @@ def sparse_autoencoder_cost(theta, visible_size, hidden_size, lambda_, sparsity_
     b2 = theta[2*hidden_size*visible_size+hidden_size:]
 
     m = data.shape[1]
-
-　　　　#前向传播
+	# 正向传播
     a1 = data            
     z2 = W1.dot(a1) + b1.reshape((-1, 1))
     a2 = sigmoid(z2)
@@ -77,12 +76,12 @@ def initialize_parameters(hidden_size, visible_size):
     return theta
 
 
+
+
 #数值梯度检测
 def check_numerical_gradient():
     x = np.array([4, 10], dtype=np.float64)
     value, grad = simple_quadratic_function(x)
-
-    # Use your code to numerically compute the gradient of simple_quadratic_function at x.
     func = lambda x : simple_quadratic_function(x)[0] 
     numgrad = compute_numerical_gradient(func, x)
 
@@ -115,7 +114,7 @@ def simple_quadratic_function(x):
 
     return value, grad
 
-def compute_numerical_gradient(J, theta):　#数值梯度计算
+def compute_numerical_gradient(J, theta):   #数值梯度计算
  
     n = theta.size
     grad = np.zeros(n)
@@ -215,14 +214,14 @@ def normalize_data(patches):
     return patches
 
 """
-第一步：加载图片数据，显示20张图片    
+第一步：加载图片数据，显示200张图片    
 """
-patches = sample_images('data/IMAGES.mat') # 数据加载
+patches = sample_images('data/IMAGES.mat') # Read sample form the Matlab file
 
-n_patches = patches.shape[1] #获取数据批次
+n_patches = patches.shape[1] # Number of patches
 
 # 随机200张图显示并保存
-image = display_network(patches[: , [np.random.randint(n_patches) for i in range(20)]])
+image = display_network(patches[: , [np.random.randint(n_patches) for i in range(200)]])
 
 plt.figure()
 plt.imshow(image, cmap=plt.cm.gray)
