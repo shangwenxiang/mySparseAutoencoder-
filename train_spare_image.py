@@ -6,25 +6,45 @@ import scipy.optimize
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 
+
+#初始化参数
+def initialize_parameters(hidden_size, visible_size):
+  
+    # 随机初始化参数
+    r  = np.sqrt(6) / np.sqrt(hidden_size + visible_size + 1)
+    W1 = np.random.random((hidden_size, visible_size)) * 2.0 * r - r  #获取一个hidden_size*visible_size的矩阵
+    W2 = np.random.random((visible_size, hidden_size)) * 2.0 * r - r
+
+    b1 = np.zeros(hidden_size)
+    b2 = np.zeros(visible_size)
+
+    theta = np.hstack((W1.ravel(), W2.ravel(), b1.ravel(), b2.ravel()))
+    print "r:",r,"w1:",W1,"len((W1)",len(W1),"w2:",W2,"len(W2)",len(W2),"b1",b1,"b2","theta:",theta,"len(theta)",len(theta)
+
+    return theta
+
+
 #稀疏编码代价计算
 def sparse_autoencoder_cost(theta, visible_size, hidden_size, lambda_, sparsity_param, beta, data):
 
+    #从theta中读取出权重和偏置
     W1 = theta[0 : hidden_size*visible_size].reshape((hidden_size, visible_size))
     W2 = theta[hidden_size*visible_size : 2*hidden_size*visible_size].reshape((visible_size, hidden_size))
     b1 = theta[2*hidden_size*visible_size : 2*hidden_size*visible_size+hidden_size]
     b2 = theta[2*hidden_size*visible_size+hidden_size:]
 
     m = data.shape[1]
-	# 正向传播
+    
+    #zhengxiangchaunbo
     a1 = data            
-    z2 = W1.dot(a1) + b1.reshape((-1, 1))
-    a2 = sigmoid(z2)
-    z3 = W2.dot(a2) + b2.reshape((-1, 1))
-    h  = sigmoid(z3)      
-    y  = a1
+    z2 = W1.dot(a1) + b1.reshape((-1, 1))	#计算第二层输入
+    a2 = sigmoid(z2)	#通过sigmod函数，计算第二层输出
+    z3 = W2.dot(a2) + b2.reshape((-1, 1))   #计算第三层输入
+    h  = sigmoid(z3)	#计算第三层输出　实际输出
+    y  = a1	#期望输出，理想输出
 
     
-    rho = sparsity_param
+    rho = sparsity_param    #隐藏单元平均激活参数
     rho_hat = np.mean(a2, axis=1)
     sparsity_delta = (-rho/rho_hat + (1.0-rho)/(1-rho_hat)).reshape((-1, 1))
 
@@ -32,7 +52,7 @@ def sparse_autoencoder_cost(theta, visible_size, hidden_size, lambda_, sparsity_
     delta3 = (h-y)*sigmoid_prime(z3)
     delta2 = (W2.T.dot(delta3) + beta*sparsity_delta)*sigmoid_prime(z2)
 
-    # 待机计算
+    # 代价计算
     squared_error_term = np.sum((h-y)**2) / (2.0*m)
     weight_decay = 0.5*lambda_*(np.sum(W1*W1) + np.sum(W2*W2))
     sparsity_term = beta*np.sum(KL_divergence(rho, rho_hat))
@@ -58,22 +78,6 @@ def sigmoid_prime(x):
     f = sigmoid(x)
     df = f*(1.0-f)
     return df
-
-
-#初始化参数
-def initialize_parameters(hidden_size, visible_size):
-  
-    # 随机初始化参数
-    r  = np.sqrt(6) / np.sqrt(hidden_size + visible_size + 1)
-    W1 = np.random.random((hidden_size, visible_size)) * 2.0 * r - r
-    W2 = np.random.random((visible_size, hidden_size)) * 2.0 * r - r
-
-    b1 = np.zeros(hidden_size)
-    b2 = np.zeros(visible_size)
-
-    theta = np.hstack((W1.ravel(), W2.ravel(), b1.ravel(), b2.ravel()))
-
-    return theta
 
 
 
@@ -156,7 +160,6 @@ def display_network(A):
         for j in range(int(n)):
             if k >= col:
                 continue
-
             clim = np.max(np.abs(A[:, k]))
 
             if opt_normalize:
@@ -213,15 +216,54 @@ def normalize_data(patches):
 
     return patches
 
+
+def train_net():
+    """
+    随机初始化参数
+    """
+    theta = initialize_parameters(hidden_size, visible_size)
+
+    J = lambda theta : sparse_autoencoder_cost(theta, visible_size, hidden_size,
+        weight_decay_param, sparsity_param, beta, patches)
+
+    ## 迭代次数设置为450
+    options = {'maxiter': 450, 'disp': True, 'gtol': 1e-5, 'ftol': 2e-9}
+    results = scipy.optimize.minimize(J, theta, method='L-BFGS-B', jac=True, options=options)
+    opt_theta = results['x']
+    W1 = opt_theta[0:hidden_size*visible_size].reshape((hidden_size, visible_size))
+    np.save("train_spare_image.npy",W1);
+    print("Show the results of optimization as following.\n")
+    print(results)
+    
+    
+def show_feature():   
+    """
+    第六步：可视化
+    """
+    
+    W1=np.load("train_spare_image.npy")
+    print("Save and show the W1")
+    image = display_network(W1.T)
+
+    plt.figure()
+    plt.imsave('sparse_autoencoder_weights.png', image, cmap=plt.cm.gray)
+    plt.imshow(image, cmap=plt.cm.gray)
+
+    plt.show()
+
+    print "len(W1):",len(W1),"W1:",W1,"W1.T:",W1.T,"len(W1.T)",len(W1.T)
+
+
+
 """
-第一步：加载图片数据，显示200张图片    
+第一步：加载图片数据，显示20张图片    
 """
 patches = sample_images('data/IMAGES.mat') # Read sample form the Matlab file
 
 n_patches = patches.shape[1] # Number of patches
 
-# 随机200张图显示并保存
-image = display_network(patches[: , [np.random.randint(n_patches) for i in range(200)]])
+# 随机20张图显示并保存
+image = display_network(patches[: , [np.random.randint(n_patches) for i in range(20)]])
 
 plt.figure()
 plt.imshow(image, cmap=plt.cm.gray)
@@ -233,6 +275,7 @@ plt.imsave('sparse_autoencoder_patches.png', image, cmap=plt.cm.gray)
 第二步：设置spare autoencode的滤波器参数，经验值，不需要改变
 """
 visible_size = patches.shape[0] # 输入单元数目
+print "visible_size:",visible_size,"n_patches:",n_patches
 hidden_size = 25                # 隐藏单元数目
 
 weight_decay_param = 0.0001 # 权重衰减系数　学习率
@@ -273,35 +316,10 @@ if debug:
     print("Norm of difference = ", diff)
 
 
-"""
-随机初始化参数
-"""
-theta = initialize_parameters(hidden_size, visible_size)
-
-J = lambda theta : sparse_autoencoder_cost(theta, visible_size, hidden_size,
-    weight_decay_param, sparsity_param, beta, patches)
+#train_net()   #只需要训练一次
+show_feature()
 
 
-options = {'maxiter': 400, 'disp': True, 'gtol': 1e-5, 'ftol': 2e-9}
-results = scipy.optimize.minimize(J, theta, method='L-BFGS-B', jac=True, options=options)
-opt_theta = results['x']
 
-print("Show the results of optimization as following.\n")
-print(results)
-
-
-"""
-第六步：可视化
-"""
-W1 = opt_theta[0:hidden_size*visible_size].reshape((hidden_size, visible_size))
-
-print("Save and show the W1")
-image = display_network(W1.T)
-
-plt.figure()
-plt.imsave('sparse_autoencoder_weights.png', image, cmap=plt.cm.gray)
-plt.imshow(image, cmap=plt.cm.gray)
-
-plt.show()
 
 
